@@ -2,7 +2,9 @@ import 'dart:math';
 
 import 'package:useful_app/shop_list/models/item.dart';
 import 'package:useful_app/shop_list/models/database_manager.dart';
-import 'package:useful_app/tools.dart';
+import 'package:useful_app/utils/tools.dart';
+
+enum ItemCountableSelection { all, taken, notTaken }
 
 class ItemCountable {
   int id = -1;
@@ -11,16 +13,6 @@ class ItemCountable {
   Item item = Item.none();
 
   ItemCountable(this.id, this.taken, this.amount, this.item);
-
-  ItemCountable.fromMap(Map<String, Object?> map, this.item) {
-    try {
-      id = int.parse(map["id"].toString());
-      taken = Tools.stringToBool(map["taken"].toString());
-      amount = map["amount"].toString();
-    } catch (e) {
-      ItemCountable.none(item);
-    }
-  }
 
   ItemCountable.none(this.item) {
     id = -1;
@@ -44,9 +36,10 @@ class ItemCountable {
     this.taken = taken;
   }
 
-  void setAmountDB(String newAmount, DataBaseManager db) {
+  /// return -1 on failure and 0 on success
+  Future<int> setAmountDB(String newAmount, DataBaseManager db) async {
     setAmount(newAmount);
-    db.setAmountItemCountable(id, amount);
+    return await db.setAmountItemCountable(id, amount);
   }
 
   Map<String, String> toMapForDB({int strLen = 100}) {
@@ -97,8 +90,33 @@ class ItemCountable {
     });
   }
 
-  void setTakenDB(bool taken, DataBaseManager db) {
+  Future<int> setTakenDB(bool taken, DataBaseManager db) async {
     setTaken(taken);
-    db.setTakenItemCountable(id, taken);
+    return await db.setTakenItemCountable(id, taken);
+  }
+
+  static Future<ItemCountable?> fromMap(
+      Map<String, Object?> map, DataBaseManager db) async {
+    if (!map.containsKey("id") ||
+        !map.containsKey("taken") ||
+        !map.containsKey("amount") ||
+        !map.containsKey("itemID")) {
+      return null;
+    }
+
+    int? itemID = int.tryParse(map["itemID"].toString());
+    if (itemID == null) {
+      return null;
+    }
+    Item? item = await db.getItem(itemID);
+    if (item == null) {
+      return null;
+    }
+
+    int? id = int.tryParse(map["id"].toString());
+    bool taken = Tools.stringToBool(map["taken"].toString());
+    String amount = map["amount"].toString();
+
+    return (id == null) ? null : ItemCountable(id, taken, amount, item);
   }
 }

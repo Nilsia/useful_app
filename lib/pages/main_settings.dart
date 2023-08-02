@@ -1,8 +1,8 @@
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:useful_app/shop_list/pages/shop_list_settings.dart';
-import 'package:useful_app/tools.dart';
+import 'package:useful_app/shop_list/pages/settings_page.dart';
+import 'package:useful_app/utils/tools.dart';
 
 class MainSettings extends StatefulWidget {
   const MainSettings({Key? key}) : super(key: key);
@@ -27,7 +27,8 @@ class _MainSettingsState extends State<MainSettings> {
     } else if (stateInit == 1) {
       stateInit++;
 
-      Tools.getSelectedThemeList(sharedPreferences: sp).then((value) => _selectedTheme = value);
+      Tools.getSelectedThemeList(sharedPreferences: sp)
+          .then((value) => _selectedTheme = value);
       Tools.getShowNewVersion(sharedPreferences: sp)
           .then((value) => {newVersionSwitchState = value, setState(() {})});
     }

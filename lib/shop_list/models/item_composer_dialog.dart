@@ -1,10 +1,17 @@
-
-
 import 'package:flutter/material.dart';
 
-class ItemComposerDialog {
+class ItemComposer {
   String info, hint, infoShort;
   TextEditingController controller;
+  bool autofocus;
+  late FocusNode focusNode;
 
-  ItemComposerDialog(this.info, this.hint, this.controller, this.infoShort);
+  ItemComposer(this.info, this.hint, this.controller, this.infoShort,
+      {this.autofocus = false}) {
+    focusNode = FocusNode();
+  }
+
+  void focus() {
+    focusNode.requestFocus();
+  }
 }

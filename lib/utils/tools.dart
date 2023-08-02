@@ -5,13 +5,29 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+enum PopupAction { add, remove, edit }
+
+enum SortType { alpha, alphaRev, takenFirst, takenEnd, none }
+
 class Tools {
+  static List<T> nullFilter<T>(List<T?> list) => [...list.whereType<T>()];
+
   static bool stringToBool(String s) {
     if ((s.toLowerCase() == "true" || s.toLowerCase() == "1")) {
       return true;
     } else {
       return false;
     }
+  }
+
+  static SnackBar showNormalSnackBar(BuildContext context, String text,
+      {SnackBarAction? snackBarAction}) {
+    SnackBar snackBar = SnackBar(
+      content: Text(text),
+      action: snackBarAction,
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    return snackBar;
   }
 
   static AppBar generateAppBar(Widget title,
@@ -78,7 +94,8 @@ class Tools {
     SharedPreferences sp = sharedPreferences ?? await getSP();
     String? spSelected = await getSelectedTheme(sharedPreferences: sp);
     return <bool>[
-      (spSelected ?? AdaptiveThemeMode.system.name) == AdaptiveThemeMode.system.name,
+      (spSelected ?? AdaptiveThemeMode.system.name) ==
+          AdaptiveThemeMode.system.name,
       (spSelected ?? "") == AdaptiveThemeMode.dark.name,
       (spSelected ?? "") == AdaptiveThemeMode.light.name
     ];
