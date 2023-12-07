@@ -52,32 +52,31 @@ class Item {
 
   Map<String, String> toMapForDB() {
     return {
-      "itemName": name,
-      "location": location,
-      "affiliation": affiliation,
-      "time_used": timeUsed.toString(),
-      "used": "true",
+      DataBaseManager.itemNameI: name,
+      DataBaseManager.locationI: location,
+      DataBaseManager.affiliationI: affiliation,
+      DataBaseManager.timeUsedI: timeUsed.toString(),
     };
   }
 
   @override
   String toString() {
-    return "Item(id: $id, itemName: $name, location: $location, affiliation: $affiliation, time_used: $timeUsed)";
+    return "Item(id: $id, ${DataBaseManager.itemNameI}: $name, ${DataBaseManager.locationI}: $location, ${DataBaseManager.affiliationI}: $affiliation, ${DataBaseManager.timeUsedI}: $timeUsed)";
   }
 
   static Item? fromMap(Map<String, Object?> map) {
-    if (!map.containsKey("id") ||
-        !map.containsKey("itemName") ||
-        !map.containsKey("location") ||
-        !map.containsKey("affiliation") ||
-        !map.containsKey("time_used")) {
+    if (!map.containsKey(DataBaseManager.idI) ||
+        !map.containsKey(DataBaseManager.itemNameI) ||
+        !map.containsKey(DataBaseManager.locationI) ||
+        !map.containsKey(DataBaseManager.affiliationI) ||
+        !map.containsKey(DataBaseManager.timeUsedI)) {
       return null;
     }
-    int? id = int.tryParse(map["id"].toString());
-    String name = map["itemName"].toString();
-    String location = map["location"].toString();
-    String affiliation = map["affiliation"].toString();
-    int? timeUsed = int.tryParse(map["time_used"].toString());
+    int? id = int.tryParse(map[DataBaseManager.idI].toString());
+    String name = map[DataBaseManager.itemNameI].toString();
+    String location = map[DataBaseManager.locationI].toString();
+    String affiliation = map[DataBaseManager.affiliationI].toString();
+    int? timeUsed = int.tryParse(map[DataBaseManager.timeUsedI].toString());
 
     return (timeUsed == null || id == null)
         ? null

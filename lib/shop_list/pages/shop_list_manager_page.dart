@@ -355,7 +355,7 @@ class _ShopListManagerState extends State<ShopListManager> {
       case PopupAction.remove:
         return removeItemC(itemCountable);
       case PopupAction.edit:
-        return currentShopList
+        bool ret = await currentShopList
             .updateItemCountable(itemCChosen, itemCountable, db)
             .then((value) {
           if (value <= -1) {
@@ -366,6 +366,8 @@ class _ShopListManagerState extends State<ShopListManager> {
           }
           return true;
         });
+        updateShopList();
+        return ret;
     }
   }
 

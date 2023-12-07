@@ -17,10 +17,14 @@ class ItemListViewBuilder extends StatelessWidget {
         itemCount: itemList.length,
         itemBuilder: (BuildContext context, int index) {
           Item item = itemList[index];
-          double opacity =
-              (namesInList?.contains(item.name) ?? false) ? 0.5 : 1;
+          double opacity = 1;
+          bool enabled = true;
+          if (namesInList?.contains(item.name) ?? false) {
+            opacity = 0.5;
+            enabled = false;
+          }
           return InkWell(
-            onTap: () => callback(item),
+            onTap: () => enabled ? callback(item) : null,
             child: Container(
                 decoration: const BoxDecoration(
                     border: Border(bottom: BorderSide(color: Colors.grey))),

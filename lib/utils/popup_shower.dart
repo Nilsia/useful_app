@@ -35,11 +35,16 @@ class PopupShower {
             preset: '',
             context: context,
             itemList: itemList,
-            autoCancel: itemList.isEmpty ? true : !showItemListPopup)
+            autoCancel: !showItemListPopup || editing)
         .then((value) async {
-      if (value.isEmpty && showItemListPopup) {
+      if (value == null) {
         return;
       }
+      // on add value is empty and as to show popup
+      // if (value.isEmpty && showItemListPopup) {
+      // print("coucou");
+      // return;
+      // }
       listIC[keys[0]]!.controller.text = value;
       if (ic != null) {
         Map<String, String> map = ic.toMapContent(strLen: 3);
@@ -65,18 +70,21 @@ class PopupShower {
         TextButton(
             onPressed: () async {
               if (listIC['nam']!.controller.text.trim().isNotEmpty) {
-                callback(
-                        editing ? PopupAction.edit : PopupAction.add,
-                        ItemCountable(
-                            ic == null ? -1 : ic.id,
-                            ic == null ? false : ic.taken,
-                            listIC['amo']!.controller.text.trim(),
-                            Item(
-                                ic == null ? -1 : ic.item.id,
-                                listIC['nam']!.controller.text.trim(),
-                                listIC['loc']!.controller.text.trim(),
-                                listIC['aff']!.controller.text.trim(),
-                                ic == null ? 0 : ic.item.timeUsed)))
+                Item item = Item(
+                    ic == null ? -1 : ic.item.id,
+                    listIC['nam']!.controller.text.trim(),
+                    listIC['loc']!.controller.text.trim(),
+                    listIC['aff']!.controller.text.trim(),
+                    ic == null ? 0 : ic.item.timeUsed);
+
+                ItemCountable itemC = ItemCountable(
+                    -1, false, listIC['amo']!.controller.text.trim(), item, -1);
+                if (ic != null) {
+                  itemC.id = ic.id;
+                  itemC.setTaken(ic.taken);
+                  itemC.setShopListRef(ic.shopListRef);
+                }
+                callback(editing ? PopupAction.edit : PopupAction.add, itemC)
                     .then((value) {
                   if (value) {
                     Navigator.of(context).pop();
@@ -99,24 +107,27 @@ class PopupShower {
                           keys: keys,
                           listIC: listIC,
                           callback: (int index) {
-                            if (index == 0) {
+                            // get only the first FormFieldInput which point to the name of the ItemCountable
+                            if (index == 0 && !editing) {
                               showItemListChooserPopup(
                                       namesAlreadyInList: namesInList,
                                       preset: listIC[keys[0]]!.controller.text,
                                       context: context,
                                       itemList: itemList,
                                       autoCancel: false)
-                                  .then((value) =>
-                                      listIC[keys[0]]!.controller.text = value);
+                                  .then((value) => listIC[keys[0]]!
+                                      .controller
+                                      .text = value ?? "");
                             }
                           })),
                   actions: buttonList,
+                  actionsAlignment: MainAxisAlignment.start,
                 );
               }));
     });
   }
 
-  static Future<String> showItemListChooserPopup(
+  static Future<String?> showItemListChooserPopup(
       {required BuildContext context,
       required List<Item> itemList,
       required bool autoCancel,
@@ -169,7 +180,7 @@ class PopupShower {
                 ),
                 actions: [
                   TextButton(
-                      onPressed: () => Navigator.of(context).pop(''),
+                      onPressed: () => Navigator.of(context).pop(null),
                       child: const Text("ANNULER")),
                   TextButton(
                       onPressed: () {

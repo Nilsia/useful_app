@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:useful_app/shop_list/models/database_manager.dart';
 import 'package:useful_app/shop_list/models/shop_list.dart';
 import 'package:useful_app/shop_list/pages/shop_list_manager_page.dart';
@@ -68,7 +69,8 @@ class _ShopListState extends State<ShopListMain> {
               onTapDown: _getTapPosition,
               child: ListTile(
                 title: Text(curList.name),
-                subtitle: Text(curList.creationDate.toString()),
+                subtitle:
+                    Text(DateFormat("EEEE dd MMMM yyyy").format(curList.creationDate)),
                 onTap: () => {
                   Navigator.push(
                       context,
@@ -112,7 +114,8 @@ class _ShopListState extends State<ShopListMain> {
                             action: SnackBarAction(
                                 label: "RESTAURER",
                                 onPressed: () async => {
-                                      await db.restoreShopList(shopListRemoved),
+                                      // TODO restore here is inexistenct
+                                      // await db.restoreShopList(shopListRemoved),
                                     }),
                           );
                           // ignore: use_build_context_synchronously

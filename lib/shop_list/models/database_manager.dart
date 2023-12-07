@@ -7,7 +7,8 @@ import 'package:useful_app/shop_list/models/item_countable.dart';
 import 'package:useful_app/shop_list/models/shop_list.dart';
 import 'package:useful_app/utils/tools.dart';
 
-// optimiser getItemCountableList
+// TODO
+// set a description for ShopList at main page
 
 class DataBaseManager {
   DataBaseManager({bool haveToInit = false}) {
@@ -16,122 +17,122 @@ class DataBaseManager {
     }
   }
 
-  final String _tbNameSL = "ShopList";
-  final String _tbNameIC = "itemCountableList";
-  final String _tbNameI = "item";
-
-  final String _id = "id";
-  final String _used = "used";
+  static String tbNameSL = "ShopList";
+  static String tbNameIC = "ItemCountable";
+  static String tbNameI = "Item";
 
   // DB ShopList
-  final String _listNameCSL = "listName";
-  final String _creationCSL = "creation";
-  final String _expiryCSL = "expiry";
-  final String _itemCountableListCSL = "itemCountableList";
+  static String idSL = "shopListId";
+  static String listNameSL = "listName";
+  static String creationSL = "creation";
+  static String expirySL = "expiry";
 
   // DB ItemCountable
-  final String _takenCIC = "taken";
-  final String _amountCIC = "amount";
-  final String _deleteAfterCIC = "delete_after";
-  final String _itemIDCIC = "itemID";
+  static String idIC = "itemCountableId";
+  static String takenIC = "taken";
+  static String amountIC = "amount";
+  static String deleteAfterIC = "deleteAfter";
+  static String itemRefIC = "itemRef";
+  static String shopListRefIC = "shopListRef";
 
   // DB Item
-  final String _itemNameCI = "itemName";
-  final String _locationCI = "location";
-  final String _affiliationCI = "affiliation";
-  final String _timeUsedCI = "time_used";
+  static String idI = "itemId";
+  static String itemNameI = "itemName";
+  static String locationI = "location";
+  static String affiliationI = "affiliation";
+  static String timeUsedI = "timeUsed";
 
-  late Future<Database> database;
+  // late Future<Database> database;
+  late Database db;
   bool hasInit = false;
 
-  Future<void> init() async {
+  Future<DataBaseManager> init() async {
     if (hasInit) {
-      return;
+      return this;
     }
-    database = openDatabase(
+
+    db = await openDatabase(
+      // database =  openDatabase(
       // Set the path to the database. Note: Using the `join` function from the
       // `path` package is best practice to ensure the path is correctly
       // constructed for each platform.
       join(await getDatabasesPath(), 'shop_list.db'),
       // When the database is first created, create a table to store dogs.
-      onCreate: (db, version) => createDb(db),
+      onCreate: (db, version) async => await createDb(db),
       version: 1,
     );
     hasInit = true;
+    return this;
   }
 
-  void createDb(Database db) {
+  Future<void> createDb(Database db) async {
     String createTB = "CREATE TABLE IF NOT EXISTS";
     String idColDef = "INTEGER PRIMARY KEY AUTOINCREMENT";
-    db.execute(
-        '$createTB $_tbNameI($_id $idColDef, $_used TEXT, $_itemNameCI TEXT, $_locationCI TEXT, $_affiliationCI TEXT, $_timeUsedCI INTEGER);');
-    db.execute(
-        '$createTB $_tbNameIC($_id $idColDef, $_used TEXT, $_takenCIC TEXT, $_amountCIC TEXT, $_deleteAfterCIC INTEGER, $_itemIDCIC TEXT);');
-    db.execute('$createTB $_tbNameSL($_id $idColDef, '
-        '$_used TEXT, '
-        '$_listNameCSL TEXT, '
-        '$_creationCSL TEXT, '
-        '$_expiryCSL TEXT, '
-        '$_itemCountableListCSL TEXT);');
+    await db.execute('$createTB $tbNameSL($idSL $idColDef, '
+        '$listNameSL TEXT, '
+        '$creationSL TEXT, '
+        '$expirySL TEXT);');
+    await db.execute('$createTB $tbNameI($idI $idColDef, '
+        '$itemNameI TEXT, '
+        '$locationI TEXT, '
+        '$affiliationI TEXT, '
+        '$timeUsedI INTEGER);');
+    await db.execute('$createTB $tbNameIC($idIC $idColDef, '
+        '$takenIC TEXT, '
+        '$amountIC TEXT, '
+        '$deleteAfterIC INTEGER, '
+        '$itemRefIC INTEGER ,'
+        '$shopListRefIC INTEGER ,'
+        'FOREIGN KEY ($itemRefIC) REFERENCES $tbNameI($idI) ON DELETE CASCADE,'
+        'FOREIGN KEY ($shopListRefIC) REFERENCES $tbNameSL($idSL) ON DELETE CASCADE'
+        ');');
   }
 
   void dropTables() async {
-    final db = await database;
-    db.execute("DROP TABLE IF EXISTS $_tbNameIC");
-    db.execute("DROP TABLE IF EXISTS $_tbNameSL");
-    db.execute("DROP TABLE IF EXISTS $_tbNameI");
+//    final Database db = await database;
+    await db.execute("DROP TABLE IF EXISTS $tbNameIC");
+    await db.execute("DROP TABLE IF EXISTS $tbNameSL");
+    await db.execute("DROP TABLE IF EXISTS $tbNameI");
   }
 
   /// return 0 on success and -1 on failure
   Future<int> addList(ShopList shopList) async {
-    final Database db = await database;
+//    final Database db = await database;
 
     final values = shopList.toMapForDB();
 
-    var c = await db
-        .rawQuery("SELECT $_id FROM $_tbNameSL WHERE $_used = ?", ["false"]);
-    int res = -1;
-    if (c.isEmpty) {
-      res = await db.insert(_tbNameSL, values,
-          conflictAlgorithm: ConflictAlgorithm.replace);
-    } else {
-      await db.update(_tbNameSL, values,
-          where: "$_used = ? AND $_id = ?",
-          whereArgs: ["false", c[0][_id].toString()]);
-      res = int.parse(c[0][_id].toString());
-    }
+    final int res = await db.insert(tbNameSL, values,
+        conflictAlgorithm: ConflictAlgorithm.abort);
 
-    db.close();
+    // db.close();
 
     return res;
   }
 
   /// get all the list without there content
   Future<List<ShopList>> getAllLists() async {
-    List<ShopList> shopLists = <ShopList>[];
-    final Database db = await database;
+    List<ShopList?> shopLists = [];
+//    final Database db = await database;
 
-    final List<Map<String, Object?>> res = await db
-        .rawQuery("SELECT * FROM $_tbNameSL WHERE $_used = ?", ["true"]);
+    try {
+      final List<Map<String, Object?>> res =
+          await db.rawQuery("SELECT * FROM $tbNameSL");
 
-    for (var o in res) {
-      shopLists.add(ShopList(
-          int.parse(o[_id].toString()),
-          o[_listNameCSL].toString(),
-          DateTime.now(),
-          DateTime.now(), <ItemCountable>[]));
-    }
-
-    return shopLists;
+      for (var o in res) {
+        shopLists
+            .add(await ShopList.fromMap(o, this, getItemCountableList: false));
+      }
+    } catch (e) {}
+    return Tools.nullFilter(shopLists);
   }
 
   /// grab all the known item of the database
   Future<List<Item>> getAllItem() async {
     List<Item> itemList = <Item>[];
-    final Database db = await database;
+//    final Database db = await database;
 
     final List<Map<String, Object?>> res =
-        await db.rawQuery("SELECT * FROM $_tbNameI WHERE $_used = ?", ["true"]);
+        await db.rawQuery("SELECT * FROM $tbNameI");
 
     Item? item;
     for (var o in res) {
@@ -147,119 +148,50 @@ class DataBaseManager {
 
   /// get the list that has for id [id]
   Future<ShopList> getShopList(int id) async {
-    final Database db = await database;
+//    final Database db = await database;
 
-    final List<Map<String, Object?>> res = await db.rawQuery(
-        "SELECT * FROM $_tbNameSL WHERE $_id = ? AND $_used = ?",
-        [id.toString(), "true"]);
+    final List<Map<String, Object?>> res = await db
+        .rawQuery("SELECT * FROM $tbNameSL WHERE $idSL = ?", [id.toString()]);
     if (res.isEmpty) {
-      return ShopList(-1, "", DateTime.now(), DateTime.now(), []);
+      return ShopList.none();
     }
 
-    return await ShopList.fromMap(res.first, this) ?? ShopList.none();
+    return await ShopList.fromMap(res.first, this,
+            getItemCountableList: true) ??
+        ShopList.none();
   }
 
   Future<List<ItemCountable>> getItemCountableList(
-      Map<String, Object?> map) async {
-    final db = await database;
-    List<ItemCountable?> itemCountableList = <ItemCountable?>[];
-
-    if (!map.containsKey(_itemCountableListCSL)) {
-      return [];
-    }
-
-    String inStr = "(?";
-    List<int> ids = [];
-    int? tmp;
-    List<String> idListStr = map[_itemCountableListCSL].toString().split(",");
-    if (idListStr.isEmpty) {
-      return [];
-    }
-    if (idListStr.length == 1) {
-      tmp = int.tryParse(idListStr.first);
-      if (tmp == null) {
-        return [];
-      }
-
-      ids = [tmp];
-      inStr = "$inStr)";
-    } else {
-      tmp = int.tryParse(idListStr[0]);
-      if (tmp == null) {
-        return [];
-      }
-      ids = [tmp];
-      for (int i = 1; i < idListStr.length; i++) {
-        tmp = int.tryParse(idListStr[i]);
-        if (tmp == null) {
-          continue;
-        }
-        ids.add(tmp);
-        inStr = "$inStr, ?";
-      }
-      inStr += ")";
-    }
-
-    // get all item Countable
-    List<Map<String, Object?>> resItemC =
-        await db.query(_tbNameIC, where: "$_id IN $inStr", whereArgs: ids);
-
-    for (final Map<String, Object?> map in resItemC) {
+      List<Map<String, Object?>>? mapList, int shopListId) async {
+//    final Database db = await database;
+    mapList = await db.rawQuery(
+        "SELECT * FROM (SELECT * FROM $tbNameIC WHERE $shopListRefIC = ?) as ic JOIN $tbNameI as i ON i.$idI = ic.$itemRefIC ",
+        [shopListId]);
+    List<ItemCountable?> itemCountableList =
+        List.generate(mapList.length, (index) => null);
+    for (Map<String, Object?> map in mapList) {
       itemCountableList.add(await ItemCountable.fromMap(map, this));
     }
     return Tools.nullFilter(itemCountableList);
-
-    // get all items
-    /* List<Map<String, Object?>> resItem = await db.query(_TBNameI, where: )
-
-    for (String id in map[_itemCountableListCSL].toString().split(",")) {
-      if (id.isEmpty) {
-        continue;
-      }
-
-      // get item countable
-      List<Map<String, Object?>> resItemC =
-          await db.rawQuery("SELECT * FROM $_TBNameIC WHERE $_id = ?", [id]);
-
-      if (resItemC.isEmpty || !resItemC[0].containsKey(_itemIDCIC)) {
-        return itemCountableList;
-      }
-
-      // get item
-      List<Map<String, Object?>> resItem = await db.rawQuery(
-          "SELECT * FROM $_TBNameI WHERE $_id = ?",
-          [resItemC[0][_itemIDCIC].toString()]);
-
-      if (resItem.isEmpty) {
-        return itemCountableList;
-      }
-
-      Item item = Item.fromMap(resItem.first);
-      ItemCountable itemCountable = ItemCountable.fromMap(resItemC.first, item);
-
-      itemCountableList.add(itemCountable);
-    }
-
-    return itemCountableList; */
   }
 
   Future<Item?> getItem(int itemID) async {
-    return Item.fromMap((await (await database).query(_tbNameI,
-            where: "$_id = ? AND $_used = ?", whereArgs: [itemID, "true"]))
-        .first);
+//    final Database db = await database;
+    return Item.fromMap(
+        (await db.query(tbNameI, where: "$idI = ?", whereArgs: [itemID]))
+            .first);
   }
 
   Future<ShopList> getShopListFromName(String name) async {
-    final Database db = await database;
+//    final Database db = await database;
 
-    final List<Map<String, Object?>> res = await db.rawQuery(
-        "SELECT * FROM $_tbNameSL WHERE $_listNameCSL = ? AND $_used = ?",
-        [name, "true"]);
+    final List<Map<String, Object?>> res = await db
+        .rawQuery("SELECT * FROM $tbNameSL WHERE $listNameSL = ?", [name]);
     if (res.isEmpty) {
-      return ShopList(-1, "", DateTime.now(), DateTime.now(), []);
+      return ShopList.none();
     }
 
-    var s = await ShopList.fromMap(res.first, this);
+    var s = await ShopList.fromMap(res.first, this, getItemCountableList: true);
     if (s == null) {
       return ShopList.none();
     }
@@ -268,55 +200,36 @@ class DataBaseManager {
 
   /// return -1 in error and 0 on success
   Future<int> deleteItem(Item item) async {
-    final Database db = await database;
-
-    return (await db.update(_tbNameI, {_used: "false"},
-                where: "$_itemNameCI = ? AND $_used = ?",
-                whereArgs: [item.name, "true"])) ==
+//    final Database db = await database;
+    return await db.delete(tbNameI, where: "$idI = ?", whereArgs: [item.id]) ==
             1
         ? 0
         : -1;
   }
 
   void deleteAllLists() async {
-    final db = await database;
+//    final Database db = await database;
 
-    await db.delete(_tbNameSL);
+    await db.delete(tbNameSL);
   }
 
   /// return -1 in error and 0 in success
   Future<int> deleteShopList(int id) async {
-    final db = await database;
+//    final Database db = await database;
+    // delete shoplist
+    final res1 = await db.delete(tbNameSL, where: "$idSL = ?", whereArgs: [id]);
+    // delete all the items countable
+    await db.delete(tbNameIC, where: "$shopListRefIC = ?", whereArgs: [id]);
 
-    final List<Map<String, Object?>> res = await db.rawQuery(
-        "SELECT $_itemCountableListCSL FROM $_tbNameSL WHERE $_id = ?",
-        [id.toString()]);
-
-    if (res.isEmpty) {
-      return -1;
-    }
-    int tmp = 0;
-    int ret = 1;
-    for (String str in res[0][_itemCountableListCSL].toString().split(",")) {
-      tmp = await db.update(_tbNameIC, {_used: "false"},
-          where: "$_id = ?", whereArgs: [str]);
-      if (ret == 1) {
-        ret = tmp;
-      }
-    }
-
-    tmp = await db.update(_tbNameSL, {_used: "false"},
-        where: "$_id = ?", whereArgs: [id.toString()]);
-    return (tmp != 0 && ret != 0) ? 0 : -1;
+    return (res1 != 0) ? 0 : -1;
   }
 
   /// return -1 on failture and 0 on success
   Future<int> setShopListName(String oldName, String newName) async {
-    final db = await database;
+//    final Database db = await database;
 
-    return (await db.update(_tbNameSL, {_listNameCSL: newName},
-                where: "$_listNameCSL = ? AND $_used = ?",
-                whereArgs: [oldName, "true"])) ==
+    return (await db.update(tbNameSL, {listNameSL: newName},
+                where: "$listNameSL = ?", whereArgs: [oldName])) ==
             1
         ? 0
         : -1;
@@ -324,31 +237,16 @@ class DataBaseManager {
 
   /// the id of the new item or -1 on failure
   Future<int> addItem(Item item) async {
-    final db = await database;
-    final List<Map<String, Object?>> res = await db
-        .rawQuery("SELECT $_id FROM $_tbNameI WHERE $_used = ?", ["false"]);
-
-    if (res.isEmpty) {
-      return db.insert(_tbNameI, item.toMapForDB(),
-          conflictAlgorithm: ConflictAlgorithm.replace);
-    } else {
-      if (await db.update(_tbNameI, item.toMapForDB(),
-              where: "$_used = ? AND $_id = ?",
-              whereArgs: ["false", res[0][_id].toString()]) ==
-          0) {
-        return -1;
-      }
-      int? id = int.tryParse(res[0][_id].toString());
-      return id == null ? -1 : 0;
-    }
+//    final Database db = await database;
+    return db.insert(tbNameI, item.toMapForDB());
   }
 
   /// return -1 on failure and 0 on success
   Future<int> setTakenItemCountable(int id, bool newValue) async {
-    final db = await database;
+//    final Database db = await database;
 
-    return (await db.update(_tbNameIC, {_takenCIC: newValue.toString()},
-                where: "$_id = ?", whereArgs: [id.toString()])) ==
+    return (await db.update(tbNameIC, {takenIC: newValue.toString()},
+                where: "$idIC = ?", whereArgs: [id.toString()])) ==
             1
         ? 0
         : -1;
@@ -356,40 +254,21 @@ class DataBaseManager {
 
   /// return -1 on failure and 0 on success
   Future<int> setAmountItemCountable(int id, String newValue) async {
-    final db = await database;
+//    final Database db = await database;
 
-    return (await db.update(_tbNameIC, {_amountCIC: newValue},
-                where: "$_id = ?", whereArgs: [id.toString()])) ==
+    return (await db.update(tbNameIC, {amountIC: newValue},
+                where: "$idIC = ?", whereArgs: [id.toString()])) ==
             1
         ? 0
         : -1;
   }
 
   /// return -1 on failure and 0 on success
-  Future<int> restoreShopList(ShopList shopList) async {
-    final db = await database;
-
-    final List<Map<String, Object?>> c = await db.rawQuery(
-        "SELECT $_id FROM $_tbNameSL WHERE $_listNameCSL = ? AND $_used = ? AND $_id = ?",
-        [shopList.name, "false", shopList.id.toString()]);
-    if (c.isEmpty) {
-      return -1;
-    } else {
-      return (await db.update(_tbNameSL, {_used: "true"},
-                  where: "id = ?", whereArgs: [c[0][_id].toString()])) ==
-              1
-          ? 0
-          : -1;
-    }
-  }
-
-  /// return -1 on failure and 0 on success
   Future<int> setAffiliationItem(Item item, String oldAff) async {
-    final db = await database;
+//    final Database db = await database;
 
-    return (await db.update(_tbNameI, {_affiliationCI: item.affiliation},
-                where: "$_id = ? AND $_used = ?",
-                whereArgs: [item.id.toString(), "true"])) ==
+    return (await db.update(tbNameI, {affiliationI: item.affiliation},
+                where: "$idI = ? ", whereArgs: [item.id.toString()])) ==
             1
         ? 0
         : -1;
@@ -397,22 +276,20 @@ class DataBaseManager {
 
   /// return -1 on failure and 0 on success
   Future<int> setLocationItem(Item item, String oldLoc) async {
-    final db = await database;
+//    final Database db = await database;
 
-    return (await db.update(_tbNameI, {_locationCI: item.location},
-                where: "$_id = ? AND $_used = ?",
-                whereArgs: [item.id.toString(), "true"])) ==
+    return (await db.update(tbNameI, {locationI: item.location},
+                where: "$idI = ? ", whereArgs: [item.id.toString()])) ==
             1
         ? 0
         : -1;
   }
 
   Future<int> setNameItem(Item item, String oldName) async {
-    final db = await database;
+//    final Database db = await database;
 
-    return (await db.update(_tbNameI, {_itemNameCI: item.name},
-                where: "$_id = ? AND $_used = ?",
-                whereArgs: [item.id.toString(), "true"])) ==
+    return (await db.update(tbNameI, {itemNameI: item.name},
+                where: "$idI = ?", whereArgs: [item.id.toString()])) ==
             1
         ? 0
         : -1;
@@ -429,12 +306,13 @@ class DataBaseManager {
   ///  cannot update shoplist => -7}
   Future<int> addItemInList(
       ItemCountable itemCountable, ShopList shopList) async {
-    final Database db = await database;
+    itemCountable.setShopListRef(shopList.id);
+//    final Database db = await database;
 
     // verify that the Item is in the database
     List<Map<String, Object?>> queryItem = await db.rawQuery(
-        "SELECT $_id,$_timeUsedCI FROM $_tbNameI WHERE $_used = ? AND $_itemNameCI = ?",
-        ["true", itemCountable.item.name]);
+        "SELECT $idI,$timeUsedI FROM $tbNameI WHERE $itemNameI = ?",
+        [itemCountable.item.name]);
     int? positionItem;
     int? timeUsed = 0;
 
@@ -447,8 +325,8 @@ class DataBaseManager {
     }
     // already in database, get id of Item and item used
     else {
-      positionItem = int.tryParse(queryItem.first[_id].toString());
-      timeUsed = int.tryParse(queryItem.first[_timeUsedCI].toString());
+      positionItem = int.tryParse(queryItem.first[idI].toString());
+      timeUsed = int.tryParse(queryItem.first[timeUsedI].toString());
       if (positionItem == null) {
         return -2;
       } else if (timeUsed == null) {
@@ -456,63 +334,19 @@ class DataBaseManager {
       }
     }
 
-    // get an empty ItemCountable
-    List<Map<String, Object?>> queryItemC = await db
-        .rawQuery("SELECT $_id FROM $_tbNameIC WHERE $_used = ?", ["false"]);
-    int? positionItemC;
-
     Map<String, String> map = itemCountable.toMapForDB();
-    map[_deleteAfterCIC] = "false";
-    map[_itemIDCIC] = positionItem.toString();
+    map[deleteAfterIC] = "false";
+    map[itemRefIC] = positionItem.toString();
 
-    // no raw available, have to add one
-    if (queryItemC.isEmpty || !queryItemC.first.containsKey(_id)) {
-      positionItemC = await db.insert(_tbNameIC, map);
-    }
-    // there an empty space
-    else {
-      await db.update(_tbNameIC, map,
-          where: "$_id = ? AND $_used = ?",
-          whereArgs: [queryItemC.first[_id], "false"]);
-      positionItemC = int.tryParse(queryItemC.first[_id].toString());
-      if (positionItemC == null) {
-        return -4;
-      }
-    }
-
-    List<Map<String, Object?>> querySL = await db.query(_tbNameSL,
-        columns: [_itemCountableListCSL],
-        where: "$_id = ? AND $_listNameCSL = ? AND $_used = ?",
-        whereArgs: [shopList.id.toString(), shopList.name, "true"],
-        limit: 1);
-
-    if (querySL.isEmpty) {
-      return -5;
-    }
-
-    String listIntItemID = querySL.first[_itemCountableListCSL].toString();
-    if (listIntItemID.isEmpty) {
-      listIntItemID = "$positionItemC,";
-    } else {
-      listIntItemID = "$listIntItemID$positionItemC,";
-    }
-
+    await db.insert(tbNameIC, map);
     // update time used
-    int ret = await db.update(
-        _tbNameI, {_timeUsedCI: (timeUsed + 1).toString()},
-        where: "$_id = ? AND $_used = ?",
-        whereArgs: [positionItem.toString(), "true"]);
+    int ret = await db.update(tbNameI, {timeUsedI: (timeUsed + 1).toString()},
+        where: "$idI = ? ", whereArgs: [positionItem.toString()]);
     if (ret == 0) {
       return -6;
     }
 
-    // update shopList ItemC
-    return (await db.update(_tbNameSL, {_itemCountableListCSL: listIntItemID},
-                where: "$_id = ? AND $_used = ?",
-                whereArgs: [shopList.id.toString(), "true"])) ==
-            1
-        ? 0
-        : -7;
+    return 0;
   }
 
   /// 0 => success,
@@ -521,52 +355,18 @@ class DataBaseManager {
   ///  cannot update shoplist: -2,
   ///  cannot update itemCountable => -3}
   Future<int> deleteItemInShopList(int itemCountableID, int listID) async {
-    final db = await database;
-
-    List<Map<String, Object?>> querySL = await db.query(_tbNameSL,
-        columns: [_itemCountableListCSL],
-        where: "$_used = ? AND $_id = ?",
-        whereArgs: ["true", listID.toString()]);
-
-    if (querySL.isEmpty) {
-      return -1;
-    }
-
-    List<String> strList = <String>[];
-
-    for (String id
-        in querySL.first[_itemCountableListCSL].toString().split(",")) {
-      if (id != itemCountableID.toString() && id.isNotEmpty) {
-        strList.add(id);
-      }
-    }
-
-    String idList = "";
-    if (strList.isNotEmpty) {
-      for (int i = 0; i < strList.length - 1; i++) {
-        idList = "$idList${strList[i]},";
-      }
-      idList = "$idList${strList[strList.length - 1]},";
-    }
-
-    int ret = await db.update(_tbNameSL, {_itemCountableListCSL: idList},
-        where: "$_id = ?", whereArgs: [listID.toString()]);
-    if (ret != 1) {
-      return -2;
-    }
-    return (await db.update(_tbNameIC, {_used: "false"},
-                where: "$_used = ? AND $_id = ?",
-                whereArgs: ["true", itemCountableID])) ==
-            1
-        ? 0
-        : -3;
+//    final Database db = await database;
+    // TODO handle delete after
+    final int res = await db
+        .delete(tbNameIC, where: "$idIC = ?", whereArgs: [itemCountableID]);
+    return res == 1 ? 0 : -1;
   }
 
   /// update the current [oldItem] into the [newItem], id of [oldItem] is used
   Future<int> updateItem(Item oldItem, Item newItem) async {
-    return ((await (await database).update(_tbNameI, newItem.toMapForDB(),
-                where: "$_id = ? AND $_used = ?",
-                whereArgs: [oldItem.id, 'true'])) ==
+//    final Database db = await database;
+    return ((await db.update(tbNameI, newItem.toMapForDB(),
+                where: "$idI = ? ", whereArgs: [oldItem.id])) ==
             1
         ? 0
         : -1);

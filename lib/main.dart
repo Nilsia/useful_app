@@ -33,4 +33,3 @@ class _UseFulAppState extends State<UseFulApp> {
             ));
   }
 }
-

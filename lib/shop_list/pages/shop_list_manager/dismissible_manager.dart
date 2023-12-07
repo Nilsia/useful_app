@@ -3,7 +3,6 @@ import 'package:useful_app/shop_list/models/database_manager.dart';
 import 'package:useful_app/shop_list/models/item_countable.dart';
 import 'package:useful_app/shop_list/models/shop_list.dart';
 import 'package:useful_app/shop_list/models/widgets/dismissable_backgrounds.dart';
-import 'package:useful_app/shop_list/pages/shop_list_manager_page.dart';
 import 'package:useful_app/utils/tools.dart';
 
 class DismissibleManager {

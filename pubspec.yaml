@@ -17,6 +17,8 @@ dependencies:
   package_info_plus:
   cupertino_icons: ^1.0.2
   settings_ui: ^2.0.2
+  intl: ^0.17.0
+  flutter_launcher_icons: ^0.13.1
 
 dev_dependencies:
   flutter_test:
@@ -25,6 +27,10 @@ dev_dependencies:
 
   flutter_lints: ^2.0.0
 
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  image_path: "assets/icon/icon.png"
 
 flutter:
 

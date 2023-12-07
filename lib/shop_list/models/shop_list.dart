@@ -36,22 +36,18 @@ class ShopList {
 
   Map<String, String> toMap() {
     return {
-      "id": id.toString(),
-      "used": "true",
-      "listName": name,
-      "creation": creationDate.toString(),
-      "expiry": expiryDate.toString(),
-      "itemCountableList": "",
+      DataBaseManager.idSL: id.toString(),
+      DataBaseManager.listNameSL: name,
+      DataBaseManager.creationSL: creationDate.toString(),
+      DataBaseManager.expirySL: expiryDate.toString(),
     };
   }
 
   Map<String, String> toMapForDB() {
     return {
-      "used": "true",
-      "listName": name,
-      "creation": creationDate.toString(),
-      "expiry": expiryDate.toString(),
-      "itemCountableList": "",
+      DataBaseManager.listNameSL: name,
+      DataBaseManager.creationSL: creationDate.toString(),
+      DataBaseManager.expirySL: expiryDate.toString(),
     };
   }
 
@@ -112,8 +108,22 @@ class ShopList {
         res = tmp;
       }
     }
+    int? icId = findItemCountableFromId(initialItemC.id);
+    if (icId == null) {
+      return -150;
+    }
+    _initialItemCountableList[icId] = initialItemC;
     setCurrentItemCountableList(selection: itemCountableSelection);
     return res;
+  }
+
+  int? findItemCountableFromId(int id) {
+    for (int i = 0; i < _initialItemCountableList.length; i++) {
+      if (_initialItemCountableList[i].id == id) {
+        return i;
+      }
+    }
+    return null;
   }
 
   // return 0 on success and negativ on failure
@@ -138,22 +148,23 @@ class ShopList {
     setCurrentItemCountableList(selection: itemCountableSelection);
   }
 
-  static Future<ShopList?> fromMap(
-      Map<String, Object?> map, DataBaseManager db) async {
-    if (!map.containsKey("id") || !map.containsKey("listName")) {
+  static Future<ShopList?> fromMap(Map<String, Object?> map, DataBaseManager db,
+      {required bool getItemCountableList}) async {
+    if (!map.containsKey(DataBaseManager.idSL) ||
+        !map.containsKey(DataBaseManager.listNameSL)) {
       return null;
     }
-    int? id = int.tryParse(map["id"].toString());
-    String name = map["listName"].toString();
-    //creationDate = map["creation"].toString();
-    //expiryDate = map["expiry"].toString();
+    int? id = int.tryParse(map[DataBaseManager.idSL].toString());
+    String name = map[DataBaseManager.listNameSL].toString();
 
-    DateTime? creationDate = DateTime.now();
-    DateTime? expiryDate = DateTime.now();
-    List<ItemCountable> itemCountableList = await db.getItemCountableList(map);
+    DateTime? creationDate =
+        DateTime.parse(map[DataBaseManager.creationSL].toString());
+    DateTime? expiryDate =
+        DateTime.parse(map[DataBaseManager.expirySL].toString());
 
     return (id != null)
-        ? ShopList(id, name, creationDate, expiryDate, itemCountableList)
+        ? ShopList(id, name, creationDate, expiryDate,
+            getItemCountableList ? await db.getItemCountableList(null, id) : [])
         : null;
   }
 
