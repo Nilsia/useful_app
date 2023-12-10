@@ -1,10 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:useful_app/shop_list/models/database_manager.dart';
 import 'package:useful_app/shop_list/models/shop_list.dart';
-import 'package:useful_app/shop_list/pages/shop_list_manager.dart';
-import 'package:useful_app/shop_list/pages/shop_list_settings.dart';
-import 'package:useful_app/tools.dart';
+import 'package:useful_app/shop_list/pages/shop_list_manager_page.dart';
+import 'package:useful_app/shop_list/pages/settings_page.dart';
+import 'package:useful_app/utils/tools.dart';
 
 class ShopListMain extends StatefulWidget {
   const ShopListMain({Key? key}) : super(key: key);
@@ -17,14 +17,24 @@ class _ShopListState extends State<ShopListMain> {
   late TextEditingController listNameController;
   DataBaseManager db = DataBaseManager();
   List<ShopList> allList = [];
-  bool hasInit = false;
   Offset _tapPosition = Offset.zero;
   ShopList shopListRemoved = ShopList.none();
+
+  void updateAllLists() {
+    db.init().then(
+          (value) => db.getAllLists().then((value) => {
+                allList = value,
+                setState(() {}),
+              }),
+        );
+  }
 
   @override
   void initState() {
     listNameController = TextEditingController();
+    updateAllLists();
     super.initState();
+    setState(() {});
   }
 
   @override
@@ -35,22 +45,15 @@ class _ShopListState extends State<ShopListMain> {
 
   @override
   Widget build(BuildContext context) {
-    if (!hasInit) {
-      hasInit = true;
-      getAllLists();
-    }
-
     return Scaffold(
       appBar: Tools.generateAppBar(const Text("ShopList"), actions: [
         IconButton(
             onPressed: () => {
-                  getAllLists(),
-                },
-            icon: const Icon(Icons.refresh)),
-        IconButton(
-            onPressed: () => {
-                  Navigator.push(context,
-                      PageRouteBuilder(pageBuilder: (_, __, ___) => const ShopListSettings()))
+                  Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                          pageBuilder: (_, __, ___) =>
+                              const ShopListSettings()))
                 },
             icon: const Icon(Icons.settings))
       ]),
@@ -58,23 +61,29 @@ class _ShopListState extends State<ShopListMain> {
         itemCount: allList.length,
         itemBuilder: (BuildContext context, int index) {
           ShopList curList = allList[index];
-          final RenderObject? overlay = Overlay.of(context)?.context.findRenderObject();
+          final RenderObject? overlay =
+              Overlay.of(context).context.findRenderObject();
 
           return Card(
             child: GestureDetector(
               onTapDown: _getTapPosition,
               child: ListTile(
                 title: Text(curList.name),
-                subtitle: Text(curList.creationDate.toString()),
+                subtitle:
+                    Text(DateFormat("EEEE dd MMMM yyyy").format(curList.creationDate)),
                 onTap: () => {
-                  Navigator.push(context,
-                      PageRouteBuilder(pageBuilder: (_, __, ___) => ShopListManager(curList.name)))
+                  Navigator.push(
+                      context,
+                      PageRouteBuilder(
+                          pageBuilder: (_, __, ___) =>
+                              ShopListManager(curList.name)))
                 },
                 onLongPress: () async {
                   final res = await showMenu(
                       context: context,
                       position: RelativeRect.fromRect(
-                          Rect.fromLTWH(_tapPosition.dx, _tapPosition.dy, 30, 30),
+                          Rect.fromLTWH(
+                              _tapPosition.dx, _tapPosition.dy, 30, 30),
                           Rect.fromLTWH(0, 0, overlay!.paintBounds.size.width,
                               overlay.paintBounds.size.height)),
                       items: [
@@ -94,27 +103,34 @@ class _ShopListState extends State<ShopListMain> {
 
                   switch (res) {
                     case "remove":
-                      print("Suppression liste");
                       shopListRemoved = allList.removeAt(index);
-                      db.deleteShopList(shopListRemoved.id).then((value) => setState(() {}));
-                      SnackBar snackBar = SnackBar(
-                        content: const Text("Liste supprimée !"),
-                        action: SnackBarAction(
-                            label: "RESTAURER",
-                            onPressed: () async => {
-                                  await db.restoreShopList(shopListRemoved),
-                                }),
-                      );
-                      // ignore: use_build_context_synchronously
-                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                      db.deleteShopList(shopListRemoved.id).then((value) {
+                        if (value <= -1) {
+                          Tools.showNormalSnackBar(context,
+                              "Une erreur est survenuen il se peut que la liste ne soit pas supprimée.");
+                        } else {
+                          SnackBar snackBar = SnackBar(
+                            content: const Text("Liste supprimée !"),
+                            action: SnackBarAction(
+                                label: "RESTAURER",
+                                onPressed: () async => {
+                                      // TODO restore here is inexistenct
+                                      // await db.restoreShopList(shopListRemoved),
+                                    }),
+                          );
+                          // ignore: use_build_context_synchronously
+                          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                        }
+                        updateAllLists();
+                        setState(() {});
+                      });
+
                       break;
 
                     case "read":
-                      print("lecture");
                       goToShopListManager(curList.name, false);
                       break;
                     case "edit":
-                      print("edit");
                       goToShopListManager(curList.name, true);
                       break;
                   }
@@ -132,7 +148,6 @@ class _ShopListState extends State<ShopListMain> {
           String listName = "liste + $i";
           bool nameListAvailable = false, nameListIsIn;
           while (!nameListAvailable) {
-            print("ruu");
             listName = "liste $i";
             nameListIsIn = false;
             for (ShopList shopList in allList) {
@@ -151,11 +166,18 @@ class _ShopListState extends State<ShopListMain> {
             name = listName;
           }
 
-          int id = await db.addList(ShopList(0, name, DateTime.now(), DateTime.now(), []));
-          allList.add(ShopList(id, name, DateTime.now(), DateTime.now(), []));
-          // ignore: use_build_context_synchronously
-          goToShopListManager(name, true);
-          setState(() {});
+          db
+              .addList(ShopList(0, name, DateTime.now(), DateTime.now(), []))
+              .then((id) {
+            if (id <= -1) {
+              Tools.showNormalSnackBar(context,
+                  "Une erreur est survenue, il est impossible de créer la liste.");
+            } else {
+              allList
+                  .add(ShopList(id, name!, DateTime.now(), DateTime.now(), []));
+              goToShopListManager(name, true);
+            }
+          });
         },
         child: const Icon(Icons.add),
       ),
@@ -209,27 +231,10 @@ class _ShopListState extends State<ShopListMain> {
                 )));
   }
 
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties
-        .add(DiagnosticsProperty<TextEditingController>('listNameController', listNameController));
-  }
-
   void _getTapPosition(TapDownDetails details) {
     final RenderBox referenceBox = context.findRenderObject() as RenderBox;
     setState(() {
       _tapPosition = referenceBox.globalToLocal(details.globalPosition);
     });
-  }
-
-  void getAllLists() {
-    db.init().then(
-          (value) => db.getAllLists().then((value) async => {
-                allList = value,
-                await Future.delayed(const Duration(milliseconds: 20), () {}),
-                setState(() {}),
-              }),
-        );
   }
 }

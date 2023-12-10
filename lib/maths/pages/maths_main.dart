@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:useful_app/tools.dart';
+import 'package:useful_app/utils/tools.dart';
 
 class MathsMain extends StatefulWidget {
   const MathsMain({Key? key}) : super(key: key);
@@ -19,14 +19,15 @@ class _MathsMainState extends State<MathsMain> {
       appBar: Tools.generateAppBar(const Text("Maths = VIE")),
       body: Center(
         child: ListView.builder(
-            itemCount: mathToolsMap.length, itemBuilder: (BuildContext context, int i) {
+            itemCount: mathToolsMap.length,
+            itemBuilder: (BuildContext context, int i) {
               var mathTools = mathToolsMap[i];
               return Card(
                 child: ListTile(
                   title: Text(mathTools["title"].toString()),
                 ),
               );
-        }),
+            }),
       ),
     );
   }

@@ -2,25 +2,20 @@ import 'dart:math';
 
 import 'package:useful_app/shop_list/models/item.dart';
 import 'package:useful_app/shop_list/models/database_manager.dart';
-import 'package:useful_app/tools.dart';
+import 'package:useful_app/utils/tools.dart';
+
+enum ItemCountableSelection { all, taken, notTaken }
 
 class ItemCountable {
   int id = -1;
   bool taken = false, selected = false;
   String amount = "";
   Item item = Item.none();
+  int shopListRef = -1;
+  bool deleteAfter = false;
 
-  ItemCountable(this.id, this.taken, this.amount, this.item);
-
-  ItemCountable.fromMap(Map<String, Object?> map, this.item) {
-    try {
-      id = int.parse(map["id"].toString());
-      taken = Tools.stringToBool(map["taken"].toString());
-      amount = map["amount"].toString();
-    } catch (e) {
-      ItemCountable.none(item);
-    }
-  }
+  ItemCountable(this.id, this.taken, this.amount, this.item, this.shopListRef,
+      {this.deleteAfter = false});
 
   ItemCountable.none(this.item) {
     id = -1;
@@ -44,17 +39,23 @@ class ItemCountable {
     this.taken = taken;
   }
 
-  void setAmountDB(String newAmount, DataBaseManager db) {
+  void setShopListRef(int shopListRef) {
+    this.shopListRef = shopListRef;
+  }
+
+  /// return -1 on failure and 0 on success
+  Future<int> setAmountDB(String newAmount, DataBaseManager db) async {
     setAmount(newAmount);
-    db.setAmountItemCountable(id, amount);
+    return await db.setAmountItemCountable(id, amount);
   }
 
   Map<String, String> toMapForDB({int strLen = 100}) {
     return {
-      "used".substring(0, min(4, strLen)): "true",
-      "taken".substring(0, min(5, strLen)): taken.toString(),
-      "amount".substring(0, min(6, strLen)): amount,
-      "itemID".substring(0, min(6, strLen)): item.id.toString(),
+      DataBaseManager.takenIC: taken.toString(),
+      DataBaseManager.amountIC: amount,
+      DataBaseManager.itemRefIC: item.id.toString(),
+      DataBaseManager.shopListRefIC: shopListRef.toString(),
+      DataBaseManager.deleteAfterIC: deleteAfter.toString(),
     };
   }
 
@@ -75,7 +76,7 @@ class ItemCountable {
 
   @override
   String toString() {
-    return "ItemCountable(id: $id, taken: $taken, amount: $amount, item: $item)";
+    return "ItemCountable(id: $id, taken: $taken, amount: $amount, item: $item, refShopList: $shopListRef, deleteAfter: $deleteAfter)";
   }
 
   void editFromMap(Map<String, Object> map) {
@@ -97,8 +98,43 @@ class ItemCountable {
     });
   }
 
-  void setTakenDB(bool taken, DataBaseManager db) {
+  Future<int> setTakenDB(bool taken, DataBaseManager db) async {
     setTaken(taken);
-    db.setTakenItemCountable(id, taken);
+    return await db.setTakenItemCountable(id, taken);
+  }
+
+  /// from [map] build the ItemCountable requested, the [db] is used to generate the Item, if the item data are not in it there are search with [db]
+  static Future<ItemCountable?> fromMap(
+      Map<String, Object?> map, DataBaseManager db) async {
+    if (!map.containsKey(DataBaseManager.idI) ||
+        !map.containsKey(DataBaseManager.takenIC) ||
+        !map.containsKey(DataBaseManager.amountIC) ||
+        !map.containsKey(DataBaseManager.takenIC) ||
+        !map.containsKey(DataBaseManager.shopListRefIC) ||
+        !map.containsKey(DataBaseManager.shopListRefIC)) {
+      return null;
+    }
+    int? id = int.tryParse(map[DataBaseManager.idIC].toString());
+    bool taken = Tools.stringToBool(map[DataBaseManager.takenIC].toString());
+    String amount = map[DataBaseManager.amountIC].toString();
+    bool deleteAfter =
+        Tools.stringToBool(map[DataBaseManager.deleteAfterIC].toString());
+    int? shopListRef =
+        int.tryParse(map[DataBaseManager.shopListRefIC].toString());
+    if (id == null || shopListRef == null) {
+      return null;
+    }
+
+    int? itemID = int.tryParse(map[DataBaseManager.itemRefIC].toString());
+    if (itemID == null) {
+      return null;
+    }
+    Item? item = Item.fromMap(map) ?? await db.getItem(itemID);
+    if (item == null) {
+      return null;
+    }
+
+    return ItemCountable(id, taken, amount, item, shopListRef,
+        deleteAfter: deleteAfter);
   }
 }

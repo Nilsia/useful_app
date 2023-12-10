@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:useful_app/pages/main_settings.dart';
-import 'package:useful_app/shop_list/pages/shop_list_main.dart';
-import 'package:useful_app/tools.dart';
+import 'package:useful_app/shop_list/pages/main_page.dart';
+import 'package:useful_app/utils/tools.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -30,9 +30,9 @@ class _HomePageState extends State<HomePage> {
       "dest": "ShopList",
     }
   ];
+  // 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
 
   SharedPreferences? prefs;
-  int stateInit = 0;
   String prefsVersion = "";
   String packageVersion = "";
   PackageInfo? packageInfo;
@@ -40,33 +40,21 @@ class _HomePageState extends State<HomePage> {
 
   bool doNotShowAgain = false;
 
+  Future<void> initSPPI() async {
+    prefs = await Tools.getSP();
+    packageInfo = await Tools.getPackageInfo();
+    packageVersion = await Tools.getPackageVersion(packageInfo: packageInfo);
+
+    prefsVersion = await Tools.getPrefsVersion(sharedPreferences: prefs);
+    showNewVersionDialog =
+        await Tools.getShowNewVersion(sharedPreferences: prefs);
+    if (true) {
+      openDialogNewVersion();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (stateInit == 0) {
-      Tools.getSP().then((value) => prefs = value);
-      Tools.getPackageInfo().then((value) => packageInfo = value);
-
-      stateInit++;
-
-      print("state");
-      Future.delayed(const Duration(milliseconds: 40), () {})
-          .then((value) => setState(() {}));
-    } else if (stateInit == 1) {
-      setVar();
-
-      if (packageVersion != prefsVersion &&
-          packageVersion.isNotEmpty &&
-          prefsVersion.isNotEmpty &&
-          showNewVersionDialog) {
-        if (prefs != null) {
-          //prefs!.setString("appVersion", packageVersion);
-        }
-        Future.delayed(const Duration(milliseconds: 40), () {})
-            .then((value) => openDialogNewVersion());
-      }
-      stateInit++;
-    }
-
     return Scaffold(
         appBar: Tools.generateAppBar(const Text("UseFulApp"),
             actions: [
@@ -75,7 +63,8 @@ class _HomePageState extends State<HomePage> {
                         Navigator.push(
                             context,
                             PageRouteBuilder(
-                                pageBuilder: (_, __, ___) => const MainSettings()))
+                                pageBuilder: (_, __, ___) =>
+                                    const MainSettings()))
                       },
                   icon: const Icon(Icons.settings))
             ],
@@ -134,7 +123,6 @@ class _HomePageState extends State<HomePage> {
           ));
 
   void setSPNewVersion(bool? state) {
-    print("in");
     if (prefs == null || state == null) {
       return;
     }
@@ -145,11 +133,5 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void setVar() async {
-    packageVersion = await Tools.getPackageVersion(packageInfo: packageInfo);
-
-    prefsVersion = await Tools.getPrefsVersion(sharedPreferences: prefs);
-    showNewVersionDialog =
-        await Tools.getShowNewVersion(sharedPreferences: prefs);
-  }
+  void setVar() async {}
 }

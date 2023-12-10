@@ -6,18 +6,6 @@ class Item {
 
   Item(this.id, this.name, this.location, this.affiliation, this.timeUsed);
 
-  Item.fromMap(Map<String, Object?> map) {
-    try {
-      id = int.parse(map["id"].toString());
-      name = map["itemName"].toString();
-      location = map["location"].toString();
-      affiliation = map["affiliation"].toString();
-      timeUsed = int.parse(map["timeUsed"].toString());
-    } catch (e) {
-      Item.none();
-    }
-  }
-
   Item.none() {
     id = -1;
     name = "";
@@ -38,36 +26,60 @@ class Item {
     affiliation = aff;
   }
 
-  void setAffiliationDB(String newAff, DataBaseManager db) {
+  Item clone(
+      String? name, String? affiliation, String? location, int? timeUsed) {
+    return Item(id, name ?? this.name, location ?? this.location,
+        affiliation ?? this.affiliation, timeUsed ?? this.timeUsed);
+  }
+
+  Future<int> setAffiliationDB(String newAff, DataBaseManager db) async {
     String oldAff = affiliation;
     setAffiliation(newAff);
-    db.setAffiliationItem(this, oldAff);
+    return await db.setAffiliationItem(this, oldAff);
   }
 
-  void setLocationDB(String newLoc, DataBaseManager db) {
+  Future<int> setLocationDB(String newLoc, DataBaseManager db) async {
     String oldLoc = location;
     setLocation(newLoc);
-    db.setLocationItem(this, oldLoc);
+    return await db.setLocationItem(this, oldLoc);
   }
 
-  void setNameDB(String newName, DataBaseManager db) {
+  Future<int> setNameDB(String newName, DataBaseManager db) async {
     String oldName = name;
     setName(newName);
-    db.setNameItem(this, oldName);
+    return await db.setNameItem(this, oldName);
   }
 
   Map<String, String> toMapForDB() {
     return {
-      "itemName": name,
-      "location": location,
-      "affiliation": affiliation,
-      "time_used": timeUsed.toString(),
-      "used": "true",
+      DataBaseManager.itemNameI: name,
+      DataBaseManager.locationI: location,
+      DataBaseManager.affiliationI: affiliation,
+      DataBaseManager.timeUsedI: timeUsed.toString(),
     };
   }
 
   @override
   String toString() {
-    return "Item(id: $id, itemName: $name, location: $location, affiliation: $affiliation, time_used: $timeUsed)";
+    return "Item(id: $id, ${DataBaseManager.itemNameI}: $name, ${DataBaseManager.locationI}: $location, ${DataBaseManager.affiliationI}: $affiliation, ${DataBaseManager.timeUsedI}: $timeUsed)";
+  }
+
+  static Item? fromMap(Map<String, Object?> map) {
+    if (!map.containsKey(DataBaseManager.idI) ||
+        !map.containsKey(DataBaseManager.itemNameI) ||
+        !map.containsKey(DataBaseManager.locationI) ||
+        !map.containsKey(DataBaseManager.affiliationI) ||
+        !map.containsKey(DataBaseManager.timeUsedI)) {
+      return null;
+    }
+    int? id = int.tryParse(map[DataBaseManager.idI].toString());
+    String name = map[DataBaseManager.itemNameI].toString();
+    String location = map[DataBaseManager.locationI].toString();
+    String affiliation = map[DataBaseManager.affiliationI].toString();
+    int? timeUsed = int.tryParse(map[DataBaseManager.timeUsedI].toString());
+
+    return (timeUsed == null || id == null)
+        ? null
+        : Item(id, name, location, affiliation, timeUsed);
   }
 }
