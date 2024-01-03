@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:useful_app/constants.dart' as constants;
 import 'package:useful_app/shop_list/models/item.dart';
 import 'package:useful_app/shop_list/models/item_composer_dialog.dart';
 import 'package:useful_app/shop_list/models/item_countable.dart';
 import 'package:useful_app/shop_list/models/widgets/listview_item_composer_builder.dart';
 import 'package:useful_app/shop_list/utils/item_list_view_builder.dart';
 import 'package:useful_app/utils/tools.dart';
+
+enum PopupState { edit, remove, adding }
 
 class PopupShower {
   static Future<void> openDialogItemCountable(
@@ -56,17 +59,28 @@ class PopupShower {
       }
 
       List<Widget> buttonList = <Widget>[];
+
+      // add remove button if necessery
       if (canRemove && ic != null) {
         buttonList.add(TextButton(
             onPressed: () async => {
                   if (await callback(PopupAction.remove, ic))
                     {Navigator.of(context).pop()}
                 },
-            child: const Text("SUPPRIMER")));
+            child: const Text(
+              "SUPPRIMER",
+              style: TextStyle(color: constants.removeButtonColor),
+            )));
       }
-      buttonList.addAll([
+
+      buttonList
+          .add(Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
         TextButton(
-            onPressed: Navigator.of(context).pop, child: const Text("ANNULER")),
+            onPressed: Navigator.of(context).pop,
+            child: const Text(
+              "ANNULER",
+              style: TextStyle(color: constants.cancelButtonColor),
+            )),
         TextButton(
             onPressed: () async {
               if (listIC['nam']!.controller.text.trim().isNotEmpty) {
@@ -92,8 +106,12 @@ class PopupShower {
                 });
               }
             },
-            child: const Text("CONFIRMER")),
-      ]);
+            child: const Text(
+              "CONFIRMER",
+              style: TextStyle(color: constants.confirmButtonColor),
+            )),
+      ]));
+
       return await showDialog(
           context: context,
           builder: (context) =>
@@ -102,26 +120,40 @@ class PopupShower {
                   title: Text(title),
                   content: SizedBox(
                       width: 500,
-                      height: 500,
-                      child: ListviewItemComposerBuilder(
-                          keys: keys,
-                          listIC: listIC,
-                          callback: (int index) {
-                            // get only the first FormFieldInput which point to the name of the ItemCountable
-                            if (index == 0 && !editing) {
-                              showItemListChooserPopup(
-                                      namesAlreadyInList: namesInList,
-                                      preset: listIC[keys[0]]!.controller.text,
-                                      context: context,
-                                      itemList: itemList,
-                                      autoCancel: false)
-                                  .then((value) => listIC[keys[0]]!
-                                      .controller
-                                      .text = value ?? "");
-                            }
-                          })),
-                  actions: buttonList,
-                  actionsAlignment: MainAxisAlignment.start,
+                      height: 300,
+                      child: ListView(
+                        children: [
+                          SizedBox(
+                            width: 500,
+                            height: 220,
+                            child: ListviewItemComposerBuilder(
+                                keys: keys,
+                                listIC: listIC,
+                                callback: (int index) {
+                                  // get only the first FormFieldInput which point to the name of the ItemCountable
+                                  if (index == 0 && !editing) {
+                                    showItemListChooserPopup(
+                                            namesAlreadyInList: namesInList,
+                                            preset: listIC[keys[0]]!
+                                                .controller
+                                                .text,
+                                            context: context,
+                                            itemList: itemList,
+                                            autoCancel: false)
+                                        .then((value) => listIC[keys[0]]!
+                                            .controller
+                                            .text = value ?? "");
+                                  }
+                                }),
+                          ),
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Column(
+                              children: buttonList,
+                            ),
+                          )
+                        ],
+                      )),
                 );
               }));
     });
@@ -222,12 +254,12 @@ class PopupShower {
       BuildContext context, String title, String content,
       {List<Widget>? actions}) {
     actions ??= [
-      ElevatedButton(
+      TextButton(
           onPressed: () => Navigator.of(context).pop(false),
           style: ButtonStyle(
               backgroundColor: MaterialStateProperty.all(Colors.grey)),
           child: const Text("ANNULER")),
-      ElevatedButton(
+      TextButton(
         onPressed: () => Navigator.of(context).pop(true),
         style: ButtonStyle(
             backgroundColor: MaterialStateProperty.all(Colors.green)),

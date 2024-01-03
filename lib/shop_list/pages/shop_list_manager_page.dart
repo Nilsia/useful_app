@@ -19,9 +19,9 @@ const List<Widget> showValuesAdvanced = [
 
 class ShopListManager extends StatefulWidget {
   final String listName;
-  final bool editing = true;
+  final bool editing;
 
-  const ShopListManager(this.listName, {Key? key, bool editing = true})
+  const ShopListManager(this.listName, {Key? key, this.editing = true})
       : super(key: key);
 
   @override
@@ -115,7 +115,11 @@ class _ShopListManagerState extends State<ShopListManager> {
               onLockerPressed(),
             });
     appbarActions = [moreIconDropdown, locker];
-    setState(() {});
+    if (!super.widget.editing) {
+      onLockerPressed();
+    } else {
+      setState(() {});
+    }
     super.initState();
   }
 
